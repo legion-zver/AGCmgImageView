@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "11B0EF541DDC9C3B00F9954D"
-               BuildableName = "AGImageView.app"
-               BlueprintName = "AGImageView"
-               ReferencedContainer = "container:AGImageView.xcodeproj">
+               BuildableName = "AGCmgImageView.app"
+               BlueprintName = "AGCmgImageView"
+               ReferencedContainer = "container:AGCmgImageView.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "11B0EF541DDC9C3B00F9954D"
-            BuildableName = "AGImageView.app"
-            BlueprintName = "AGImageView"
-            ReferencedContainer = "container:AGImageView.xcodeproj">
+            BuildableName = "AGCmgImageView.app"
+            BlueprintName = "AGCmgImageView"
+            ReferencedContainer = "container:AGCmgImageView.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <AdditionalOptions>
@@ -56,9 +56,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "11B0EF541DDC9C3B00F9954D"
-            BuildableName = "AGImageView.app"
-            BlueprintName = "AGImageView"
-            ReferencedContainer = "container:AGImageView.xcodeproj">
+            BuildableName = "AGCmgImageView.app"
+            BlueprintName = "AGCmgImageView"
+            ReferencedContainer = "container:AGCmgImageView.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <EnvironmentVariables>
@@ -82,9 +82,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "11B0EF541DDC9C3B00F9954D"
-            BuildableName = "AGImageView.app"
-            BlueprintName = "AGImageView"
-            ReferencedContainer = "container:AGImageView.xcodeproj">
+            BuildableName = "AGCmgImageView.app"
+            BlueprintName = "AGCmgImageView"
+            ReferencedContainer = "container:AGCmgImageView.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
