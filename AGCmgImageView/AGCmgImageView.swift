@@ -46,6 +46,15 @@ class AGCmgImageView: UIView
     
     // Превью
     private var imagePreview: UIImage? = nil
+    @IBInspectable public var previewQuality: CGFloat = 1.75 {
+        didSet {
+            if previewQuality < 1.0 {
+                previewQuality = 1.0
+            } else if previewQuality > 3.0 {
+                previewQuality = 3.0
+            }
+        }
+    }
     
     private let imageLayer: CALayer = CALayer()
     
@@ -207,9 +216,9 @@ class AGCmgImageView: UIView
         if self.image != nil {
             // Создаем изображение для preview из базового изображения
             if self.superview != nil {
-                self.imagePreview = self.image?.cmg_resizeAtAspectFit(self.bounds.size)
+                self.imagePreview = self.image?.cmg_resizeAtAspectFit(CGSize(width: self.bounds.size.width*self.previewQuality, height: self.bounds.size.height*self.previewQuality))
             } else {
-                self.imagePreview = self.image?.cmg_resizeAtAspectFit(CGSize(width: 400, height: 400))
+                self.imagePreview = self.image?.cmg_resizeAtAspectFit(CGSize(width: 400*self.previewQuality, height: 400*self.previewQuality))
             }
         }
     }
@@ -312,6 +321,7 @@ class AGCmgImageView: UIView
     
     private func updateNet() {
         self.netLayer.frame = CGRect(x: 0, y: 0, width: self.frame.size.width, height: self.frame.size.height)
+        self.netLayer.zPosition = 500.0
         
         let path = UIBezierPath()
         
