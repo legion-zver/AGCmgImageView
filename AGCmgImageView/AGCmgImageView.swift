@@ -201,7 +201,6 @@ class AGCmgImageView: UIView
         self.addGestureRecognizer(pinch)
         
         self.netLayer.name = "net"
-        //self.netLayer.isHidden = true
         self.netLayer.isHidden = !self.isCropping
         self.netLayer.lineWidth = 1.0
         self.netLayer.strokeColor = UIColor.white.cgColor
@@ -300,20 +299,18 @@ class AGCmgImageView: UIView
     }
     
     @objc private func panHandle(recognizer: UIPanGestureRecognizer) {
-        DispatchQueue.main.async {
-            if self.isCropping && self.superview != nil {
-                let translation = recognizer.translation(in: self.superview)
-                
-                CATransaction.begin()
-                CATransaction.setValue(kCFBooleanTrue, forKey: kCATransactionDisableActions)
-                
-                self.offsetX += translation.x
-                self.offsetY += translation.y
-                
-                CATransaction.commit()
-                
-                recognizer.setTranslation(CGPoint.zero, in: self.superview)
-            }
+        if self.isCropping && self.superview != nil {
+            let translation = recognizer.translation(in: self.superview)
+            
+            CATransaction.begin()
+            CATransaction.setValue(kCFBooleanTrue, forKey: kCATransactionDisableActions)
+            
+            self.offsetX += translation.x
+            self.offsetY += translation.y
+            
+            CATransaction.commit()
+            
+            recognizer.setTranslation(CGPoint.zero, in: self.superview)
         }
     }
     
@@ -321,7 +318,7 @@ class AGCmgImageView: UIView
     
     private func updateNet() {
         self.netLayer.frame = CGRect(x: 0, y: 0, width: self.frame.size.width, height: self.frame.size.height)
-        self.netLayer.zPosition = 500.0
+        self.netLayer.zPosition = 5000.0
         
         let path = UIBezierPath()
         
@@ -386,52 +383,42 @@ class AGCmgImageView: UIView
     }
     
     private func updateImageTransform() {
-        CATransaction.begin()
-        CATransaction.setValue(kCFBooleanTrue, forKey: kCATransactionDisableActions)        
-        
         self.calcImageLayerSize()
         
-        var transform = CATransform3DMakeScale(self.scale*1.00001, self.scale*1.00001, self.scale*1.00001)
+        CATransaction.begin()
+        CATransaction.setValue(kCFBooleanTrue, forKey: kCATransactionDisableActions)
         
-        if self.usePerspectiveRotation {
-            transform.m34 = -1.0/500.0
-        }
-        
-        if self.angleX != 0 {
-            transform = CATransform3DRotate(transform, self.angleX*CGFloat(M_PI)/180, 1.0,  0.0, 0.0)
-        }
-        if self.angleY != 0 {
-            transform = CATransform3DRotate(transform, self.angleY*CGFloat(M_PI)/180, 0.0, 1.0, 0.0)
-        }
-        if self.angleZ != 0 {
-            transform = CATransform3DRotate(transform, self.angleZ*CGFloat(M_PI)/180, 0.0, 0.0, 1.0)
-        }
-        self.imageLayer.transform = transform
+        self.imageLayer.transform = self.GetTransform3D()
         
         CATransaction.commit()
     }
     
     private func updateMinMaxScale() {
-        let size = self.getImageLayerBaseSize()
+        // Получаем размер с учетом текущего масштаба
+        let size = self.GetTransformedInnerSize(skipScale: true)
         
-        let sW:CGFloat = self.frame.width / size.width
-        let sH:CGFloat = self.frame.height / size.height
+        let sW:CGFloat = abs(self.frame.width / size.width)
+        let sH:CGFloat = abs(self.frame.height / size.height)
         
         self.minScaleValue = min(sW, sH)
-        self.maxScaleValue = max(sW, sH)
+        self.maxScaleValue = max(sW, sH)*3.334
         
         if self.scale < self.minScaleValue && self.minScaleValue > 0.0 {
             self.scale = self.minScaleValue
         } else if self.scale > self.maxScaleValue && self.maxScaleValue > 0.0 {
-            self.scale = self.minScaleValue
+            self.scale = self.maxScaleValue
         }
+        
+        // Тестируем смещение
+        self.offsetX = self.testImageOffsetX()
+        self.offsetY = self.testImageOffsetY()
     }
     
-    private func getImageLayerBaseSize()->CGSize {
+    private func getImageSize()->CGSize {
         var destWidth:  CGFloat = self.frame.width
         var destHeight: CGFloat = self.frame.height
         if self.image != nil {
-        let imageSize:  CGSize  = (self.image?.size)!
+            let imageSize: CGSize = (self.image?.size)!
             if self.contentMode == .scaleAspectFit {
                 if imageSize.width > imageSize.height {
                     destHeight = (imageSize.height * self.frame.width / imageSize.width)
@@ -465,13 +452,87 @@ class AGCmgImageView: UIView
     private func calcImageLayerSize() {
         if self.image != nil {
             
-            let size = self.getImageLayerBaseSize()
-            
+            let size = self.getImageSize()
             self.imageLayer.frame = CGRect(x: 0, y: 0, width: size.width, height: size.height)
             self.imageLayer.position = CGPoint(x: offsetX + self.frame.size.width*0.5, y: offsetY + self.frame.size.height*0.5)
             
             self.updateMinMaxScale()
         }
+    }
+    
+    // MARK: - Transform 3D
+    
+    private func GetTransformedInnerSize(skipScale: Bool = false)->CGSize {
+        let tranform = GetTransform3D(skipScale: skipScale)
+        let imageSize = self.getImageSize()
+        var rect:[Vector4] = [Vector4(x: -imageSize.width/2, y: -imageSize.height/2, z: 0.0, w: 1.0),
+                              Vector4(x: -imageSize.width/2, y: imageSize.height/2, z: 0.0, w: 1.0),
+                              Vector4(x: imageSize.width/2, y: imageSize.height/2, z: 0.0, w: 1.0),
+                              Vector4(x: imageSize.width/2, y: -imageSize.height/2, z: 0.0, w: 1.0)]
+        // применяем матрице
+        for i in 0...3 {
+            rect[i] = Vector4(
+                x: rect[i].x*tranform.m11+rect[i].y*tranform.m12+rect[i].z*tranform.m13+rect[i].w*tranform.m14,
+                y: rect[i].x*tranform.m21+rect[i].y*tranform.m22+rect[i].z*tranform.m23+rect[i].w*tranform.m24,
+                z: rect[i].x*tranform.m31+rect[i].y*tranform.m32+rect[i].z*tranform.m33+rect[i].w*tranform.m34,
+                w: rect[i].x*tranform.m41+rect[i].y*tranform.m42+rect[i].z*tranform.m43+rect[i].w*tranform.m44
+            )
+        }
+        var rightPoint: CGPoint = CGPoint.zero
+        var leftPoint: CGPoint = CGPoint.zero
+        rect.sort { (a: Vector4, b: Vector4) -> Bool in
+            return a.x > b.x
+        }
+        if rect[0].x == rect[1].x {
+            rightPoint.y = max(rect[0].y, rect[1].y)
+        } else {
+            rightPoint.y = rect[0].y
+        }
+        if rect[2].x == rect[3].x {
+            leftPoint.y = min(rect[2].y, rect[3].y)
+        } else {
+            leftPoint.y = rect[3].y
+        }
+        rect.sort { (a: Vector4, b: Vector4) -> Bool in
+            return a.y > b.y
+        }
+        if rect[0].y == rect[1].y {
+            rightPoint.x = max(rect[0].x, rect[1].x)
+        } else {
+            rightPoint.x = rect[0].x
+        }
+        if rect[2].y == rect[3].y {
+            leftPoint.x = min(rect[2].x, rect[3].x)
+        } else {
+            leftPoint.x = rect[3].x
+        }
+        return CGSize(width: abs(max(leftPoint.x, rightPoint.x) - min(leftPoint.x, rightPoint.x)), height: abs(max(leftPoint.y, rightPoint.y) - min(leftPoint.y, rightPoint.y)))
+    }
+    
+    private func GetTransform3D(skipScale: Bool = false)->CATransform3D {
+        var transform = CATransform3DIdentity
+        if skipScale {
+            transform = CATransform3DScale(transform, 1.0001, 1.0001, 1.0001)
+        } else {
+            if Int(self.scale*100.01) == 100  {
+                transform = CATransform3DScale(transform, 1.0001, 1.0001, 1.0001)
+            } else {
+                transform = CATransform3DScale(transform, self.scale*1.0001, self.scale*1.0001, self.scale*1.0001)
+            }
+        }
+        if self.usePerspectiveRotation {
+            transform.m34 = -1.0/500.0
+        }
+        if self.angleX != 0 {
+            transform = CATransform3DRotate(transform, self.angleX*CGFloat(M_PI)/180, 1.0,  0.0, 0.0)
+        }
+        if self.angleY != 0 {
+            transform = CATransform3DRotate(transform, self.angleY*CGFloat(M_PI)/180, 0.0, 1.0, 0.0)
+        }
+        if self.angleZ != 0 {
+            transform = CATransform3DRotate(transform, self.angleZ*CGFloat(M_PI)/180, 0.0, 0.0, 1.0)
+        }
+        return transform
     }
     
     // MARK: - Create Result Image
